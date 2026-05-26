@@ -1,0 +1,29 @@
+FILE CONTENENTE GLI STEP SEGUITI PER LA CREAZIONE DEL BACKEND, per imparare e ricordare cosa ho fatto
+
+- In pgAdmin, creato il database "grid" e la tabella "pixels"
+CREATE TABLE pixels (
+    id SERIAL PRIMARY KEY,
+    pixel_row INT NOT NULL,
+    pixel_col INT NOT NULL,
+    color varchar(7) NOT NULL DEFAULT '#FFFFFF'
+)
+- Tabella popolata
+INSERT INTO pixels (pixel_row, pixel_col)
+SELECT r, c
+FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
+
+- Creato ambiente virtuale: python -m venv venv (contiene una copia di Python
+  e i pacchetti installati solo per questo progetto, invece che globalmente)
+- Attivato ambiente virtuale: .\venv\Scripts\Activate.ps1 (pip verrà usato lì),
+  si disattiva con deactivate
+- Installati pacchetti: pip install flask psycopg2-binary python-dotenv
+  - flask: web framework minimalista usato per esporre API REST
+  - psycopg2-binary: driver PostgreSQL (fa da tramite per l'interazione col db)
+  - python-dotenv: per caricare variabili d'ambiente da .env (per connettersi al db,
+    segrete, da non caricare su git)
+- Salvato l'elenco dei pacchetti installati: pip freeze > requirements.txt
+  (serve per ricreare l'ambiente virtuale su un'altra macchina:
+  python -m venv venv, .\venv\Scripts\Activate.ps1, pip install -r requirements.txt)
+- Impostate variabili d'ambiente in .env per connettersi al db
+
+app è endpoint rest per leggere/aggiornare i pixel
