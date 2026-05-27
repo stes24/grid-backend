@@ -22,8 +22,9 @@ FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
   - python-dotenv: per caricare variabili d'ambiente da .env (per connettersi al db,
     segrete, da non caricare su git)
 - Salvato l'elenco dei pacchetti installati: pip freeze > requirements.txt
-  (serve per ricreare l'ambiente virtuale su un'altra macchina:
+  (serve per ricreare l'ambiente virtuale su un'altra macchina, simile a package.json:
   python -m venv venv, .\venv\Scripts\Activate.ps1, pip install -r requirements.txt)
 - Impostate variabili d'ambiente in .env per connettersi al db
 
-- Sviluppata app come endpoint REST per leggere/aggiornare i pixel
+- Sviluppata app come endpoint REST per leggere/aggiornare i pixel (presenta delle route
+  a cui si collegherà il client), avviata nell'ambiente virtuale: python app.py
