@@ -26,4 +26,4 @@ FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
   python -m venv venv, .\venv\Scripts\Activate.ps1, pip install -r requirements.txt)
 - Impostate variabili d'ambiente in .env per connettersi al db
 
-app è endpoint rest per leggere/aggiornare i pixel
+- Sviluppata app come endpoint REST per leggere/aggiornare i pixel
