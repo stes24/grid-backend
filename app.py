@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import psycopg2
@@ -67,7 +67,23 @@ def get_single_pixel(row, col):
 
     pixel = dict(zip(col_names, db_row))
     return jsonify(pixel)
-    
+
+# Aggiorna il colore del pixel con riga e colonna specificati
+@app.route("/pixels/<int:row>,<int:col>", methods=["PUT"])
+def update_pixel(row, col):
+    new_color = request.json.get("color")
+
+    conn = get_connection()
+
+    cur = conn.cursor()
+    cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"pixel_row": row, "pixel_col": col, "color": new_color})
+
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
 if __name__ == "__main__":
     app.run(debug=True) # True per sviluppo locale, False per produzione (pubblico)
