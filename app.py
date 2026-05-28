@@ -38,31 +38,35 @@ def get_pixels():
     # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
     cur = conn.cursor()
     cur.execute("SELECT * FROM pixels")
-    rows = cur.fetchall() # Leggi tutte le righe
+    db_rows = cur.fetchall() # Leggi tutte le tuple
+    col_names = [desc[0] for desc in cur.description] # Nomi delle colonne
 
     # Chiudi connessioni
     cur.close()
     conn.close()
 
-    # Restituisci i dati come JSON al browser
-    return jsonify(rows)
+    # Converti le tuple in dizionari con chiavi nominate, poi restituisci come JSON
+    pixels = [dict(zip(col_names, r)) for r in db_rows] # zip crea coppie chiave-valore, dict crea dizionario da esse
+    return jsonify(pixels)
 
-# Leggi il pixel con ID specificato
-@app.route("/pixels/<int:id>", methods=["GET"])
-def get_pixel_by_id(id):
+# Leggi il pixel con riga e colonna specificati
+@app.route("/pixels/<int:row>,<int:col>", methods=["GET"])
+def get_single_pixel(row, col):
     conn = get_connection()
 
     cur = conn.cursor()
-    cur.execute("SELECT * FROM pixels WHERE id = %s", (id,))
-    row = cur.fetchone()
+    cur.execute("SELECT * FROM pixels WHERE pixel_row = %s AND pixel_col = %s", (row, col))
+    db_row = cur.fetchone()
+    col_names = [desc[0] for desc in cur.description]
 
     cur.close()
     conn.close()
 
-    if row is None:
+    if db_row is None:
         return jsonify({"errore": "Pixel non trovato"}), 404
 
-    return jsonify(row)
+    pixel = dict(zip(col_names, db_row))
+    return jsonify(pixel)
     
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
 if __name__ == "__main__":

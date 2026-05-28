@@ -2,10 +2,10 @@ FILE CONTENENTE GLI STEP SEGUITI PER LA CREAZIONE DEL BACKEND, per imparare e ri
 
 - In pgAdmin, creato il database "grid" e la tabella "pixels"
 CREATE TABLE pixels (
-    id SERIAL PRIMARY KEY,
     pixel_row INT NOT NULL,
     pixel_col INT NOT NULL,
-    color varchar(7) NOT NULL DEFAULT '#FFFFFF'
+    color varchar(7) NOT NULL DEFAULT '#FFFFFF',
+    PRIMARY KEY (pixel_row, pixel_col)
 )
 - Tabella popolata
 INSERT INTO pixels (pixel_row, pixel_col)
