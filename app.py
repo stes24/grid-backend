@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify
+from flask_cors import CORS
 import os
 import psycopg2
 
@@ -22,6 +23,10 @@ def get_connection():
 
 # Crea oggetto di classe Flask per dargli il contesto (dove cercare i file)
 app = Flask(__name__)
+
+# Permette richieste cross-origin solo dall'URL del frontend
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+CORS(app, origins=[FRONTEND_URL])
 
 # QUANDO TI COLLEGHI AI PERCORSI DEFINITI, ESEGUI LA FUNZIONE ASSOCIATA
 
