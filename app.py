@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import emit, SocketIO
 import logging
 import os
 import psycopg2
@@ -22,21 +23,22 @@ def get_connection():
             user=DB_USER,
             password=DB_PASSWORD)
 
+logging.basicConfig(level=logging.DEBUG)
+
 # Crea oggetto di classe Flask per dargli il contesto (dove cercare i file)
 app = Flask(__name__)
 
-# Permette richieste cross-origin solo dall'URL del frontend
+# URL del frontend (usato sia per CORS delle API REST che per il WebSocket)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-CORS(app, origins=[FRONTEND_URL])
-
-logging.basicConfig(level=logging.DEBUG)
+CORS(app, origins=[FRONTEND_URL]) # CORS per le API REST
+socketio = SocketIO(app, cors_allowed_origins=FRONTEND_URL) # CORS per il WebSocket
 
 # QUANDO TI COLLEGHI AI PERCORSI DEFINITI, ESEGUI LA FUNZIONE ASSOCIATA
 
 # Leggi tutti i pixel
 @app.route("/pixels", methods=["GET"])
 def get_pixels():
-    logging.debug("Ricevuta chiamata GET in /pixels")
+    logging.debug("GET /pixels - Ricevuta chiamata")
     conn = get_connection()
 
     # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
@@ -51,13 +53,13 @@ def get_pixels():
 
     # Converti le tuple in dizionari con chiavi nominate, poi restituisci come JSON
     pixels = [dict(zip(col_names, r)) for r in db_rows] # zip crea coppie chiave-valore, dict crea dizionario da esse
-    logging.debug("Invio tutti i pixel")
+    logging.debug("GET /pixels - Invio tutti i pixel")
     return jsonify(pixels)
 
 # Leggi il pixel con riga e colonna specificati
 @app.route("/pixels/<int:row>,<int:col>", methods=["GET"])
 def get_single_pixel(row, col):
-    logging.debug(f"Ricevuta chiamata GET in /pixels/{row},{col}")
+    logging.debug(f"GET /pixels/{row},{col} - Ricevuta chiamata")
     conn = get_connection()
 
     cur = conn.cursor()
@@ -69,18 +71,22 @@ def get_single_pixel(row, col):
     conn.close()
 
     if db_row is None:
-        logging.debug(f"Pixel {row},{col} non trovato")
+        logging.debug(f"GET /pixels/{row},{col} - Pixel non trovato")
         return jsonify({"errore": "Pixel non trovato"}), 404
 
     pixel = dict(zip(col_names, db_row))
-    logging.debug(f"Invio il pixel {row},{col}: {pixel}")
+    logging.debug(f"GET /pixels/{row},{col} - Invio il pixel {row},{col}: {pixel}")
     return jsonify(pixel)
 
 # Aggiorna il colore del pixel con riga e colonna specificati
 @app.route("/pixels/<int:row>,<int:col>", methods=["PUT"])
 def update_pixel(row, col):
-    logging.debug(f"Ricevuta chiamata PUT in /pixels/{row},{col}")
+    logging.debug(f"PUT /pixels/{row},{col} - Ricevuta chiamata")
     new_color = request.json.get("color")
+
+    if not new_color:
+        logging.debug(f"PUT /pixels/{row},{col} - Colore mancante")
+        return jsonify({"errore": "Colore mancante"}), 400
 
     conn = get_connection()
 
@@ -91,9 +97,19 @@ def update_pixel(row, col):
     cur.close()
     conn.close()
 
-    logging.debug(f"Aggiornato il pixel {row},{col} al colore {new_color}")
+    logging.debug(f"PUT /pixels/{row},{col} - Aggiornato il pixel {row},{col} al colore {new_color}")
     return jsonify({"pixel_row": row, "pixel_col": col, "color": new_color})
+
+@socketio.on("connect")
+def connect_handler():
+    client_id = request.sid
+    logging.debug(f"ID {client_id} - Client connesso")
+    emit("message", f"Benvenuto, sei il client {client_id}")
+
+@socketio.on("disconnect")
+def disconnect_handler():
+    logging.debug(f"ID {request.sid} - Client disconnesso")
 
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
 if __name__ == "__main__":
-    app.run(debug=True) # True per sviluppo locale, False per produzione (pubblico)
+    socketio.run(app, debug=True) # True per sviluppo locale, False per produzione (pubblico)

@@ -28,6 +28,7 @@ FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
 - Impostate variabili d'ambiente in .env per connettersi al db
 
 - Installato flask-cors per permettere comunicazione tra porte diverse
+- Installato flask-socketio per web socket (tempo reale)
 
 - Sviluppata app come endpoint REST per leggere/aggiornare i pixel (presenta delle route
   a cui si collegherà il client), avviata nell'ambiente virtuale: python app.py
