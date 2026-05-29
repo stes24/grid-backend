@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import logging
 import os
 import psycopg2
 
@@ -28,11 +29,14 @@ app = Flask(__name__)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 CORS(app, origins=[FRONTEND_URL])
 
+logging.basicConfig(level=logging.DEBUG)
+
 # QUANDO TI COLLEGHI AI PERCORSI DEFINITI, ESEGUI LA FUNZIONE ASSOCIATA
 
 # Leggi tutti i pixel
 @app.route("/pixels", methods=["GET"])
 def get_pixels():
+    logging.debug("Ricevuta chiamata GET in /pixels")
     conn = get_connection()
 
     # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
@@ -47,11 +51,13 @@ def get_pixels():
 
     # Converti le tuple in dizionari con chiavi nominate, poi restituisci come JSON
     pixels = [dict(zip(col_names, r)) for r in db_rows] # zip crea coppie chiave-valore, dict crea dizionario da esse
+    logging.debug("Invio tutti i pixel")
     return jsonify(pixels)
 
 # Leggi il pixel con riga e colonna specificati
 @app.route("/pixels/<int:row>,<int:col>", methods=["GET"])
 def get_single_pixel(row, col):
+    logging.debug(f"Ricevuta chiamata GET in /pixels/{row},{col}")
     conn = get_connection()
 
     cur = conn.cursor()
@@ -63,14 +69,17 @@ def get_single_pixel(row, col):
     conn.close()
 
     if db_row is None:
+        logging.debug(f"Pixel {row},{col} non trovato")
         return jsonify({"errore": "Pixel non trovato"}), 404
 
     pixel = dict(zip(col_names, db_row))
+    logging.debug(f"Invio il pixel {row},{col}: {pixel}")
     return jsonify(pixel)
 
 # Aggiorna il colore del pixel con riga e colonna specificati
 @app.route("/pixels/<int:row>,<int:col>", methods=["PUT"])
 def update_pixel(row, col):
+    logging.debug(f"Ricevuta chiamata PUT in /pixels/{row},{col}")
     new_color = request.json.get("color")
 
     conn = get_connection()
@@ -82,6 +91,7 @@ def update_pixel(row, col):
     cur.close()
     conn.close()
 
+    logging.debug(f"Aggiornato il pixel {row},{col} al colore {new_color}")
     return jsonify({"pixel_row": row, "pixel_col": col, "color": new_color})
 
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
