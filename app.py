@@ -39,6 +39,7 @@ socketio = SocketIO(app, cors_allowed_origins=FRONTEND_URL) # CORS per il WebSoc
 @app.route("/pixels", methods=["GET"])
 def get_pixels():
     logging.debug("GET /pixels - Ricevuta chiamata")
+
     conn = get_connection()
 
     # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
@@ -60,8 +61,8 @@ def get_pixels():
 @app.route("/pixels/<int:row>,<int:col>", methods=["GET"])
 def get_single_pixel(row, col):
     logging.debug(f"GET /pixels/{row},{col} - Ricevuta chiamata")
-    conn = get_connection()
 
+    conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM pixels WHERE pixel_row = %s AND pixel_col = %s", (row, col))
     db_row = cur.fetchone()
@@ -75,21 +76,20 @@ def get_single_pixel(row, col):
         return jsonify({"errore": "Pixel non trovato"}), 404
 
     pixel = dict(zip(col_names, db_row))
-    logging.debug(f"GET /pixels/{row},{col} - Invio il pixel {row},{col}: {pixel}")
+    logging.debug(f"GET /pixels/{row},{col} - Invio il pixel: {pixel}")
     return jsonify(pixel)
 
-# Aggiorna il colore del pixel con riga e colonna specificati
+# Aggiorna il colore del pixel con riga e colonna specificati (come esempio, non usato)
 @app.route("/pixels/<int:row>,<int:col>", methods=["PUT"])
 def update_pixel(row, col):
     logging.debug(f"PUT /pixels/{row},{col} - Ricevuta chiamata")
-    new_color = request.json.get("color")
 
+    new_color = request.json.get("color")
     if not new_color:
         logging.debug(f"PUT /pixels/{row},{col} - Colore mancante")
         return jsonify({"errore": "Colore mancante"}), 400
 
     conn = get_connection()
-
     cur = conn.cursor()
     cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
     conn.commit()
@@ -97,8 +97,11 @@ def update_pixel(row, col):
     cur.close()
     conn.close()
 
-    logging.debug(f"PUT /pixels/{row},{col} - Aggiornato il pixel {row},{col} al colore {new_color}")
-    return jsonify({"pixel_row": row, "pixel_col": col, "color": new_color})
+    updated_pixel = {"pixel_row": row, "pixel_col": col, "color": new_color}
+    logging.debug(f"PUT /pixels/{row},{col} - Aggiornato il pixel: {updated_pixel}")
+    return jsonify(updated_pixel)
+
+# OPERAZIONI SOCKET
 
 @socketio.on("connect")
 def connect_handler():
@@ -109,6 +112,30 @@ def connect_handler():
 @socketio.on("disconnect")
 def disconnect_handler():
     logging.debug(f"ID {request.sid} - Client disconnesso")
+
+@socketio.on("update_pixel")
+def update_pixel_handler(data):
+    client_id = request.sid
+    row = data.get("pixel_row")
+    col = data.get("pixel_col")
+    new_color = data.get("color")
+
+    if row is None or col is None or not new_color:
+        logging.debug(f"ID {client_id} - Dati mancanti: {data}")
+        emit("error", {"errore": "Dati mancanti"})
+        return
+    logging.debug(f"ID {client_id} - Aggiornare il pixel nel db: {data}")
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    logging.debug(f"ID {client_id} - Invio broadcast: {data}")
+    emit("update_pixel", {"pixel_row": row, "pixel_col": col, "color": new_color}, broadcast=True)
 
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
 if __name__ == "__main__":
