@@ -41,16 +41,20 @@ socketio = SocketIO(app, cors_allowed_origins=FRONTEND_URL) # CORS per il WebSoc
 def get_pixels():
     logging.debug("GET /pixels - Ricevuta chiamata")
 
-    conn = get_connection()
-
-    # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
-    cur = conn.cursor(cursor_factory=RealDictCursor) # Chiedi di restituire dizionari
-    cur.execute("SELECT * FROM pixels")
-    pixels = cur.fetchall() # Leggi tutte le tuple -> Lista di dizionari
-
-    # Chiudi connessioni
-    cur.close()
-    conn.close()
+    conn = None
+    try:
+        conn = get_connection()
+        # Oggetto per fare operazioni sul db - esegui SQL e leggi risultati
+        cur = conn.cursor(cursor_factory=RealDictCursor) # Chiedi di restituire dizionari
+        cur.execute("SELECT * FROM pixels")
+        pixels = cur.fetchall() # Leggi tutte le tuple -> Lista di dizionari
+        cur.close()
+    except Exception as e:
+        logging.error(f"Errore database: {e}")
+        return jsonify({"errore": "Errore interno"}), 500
+    finally:
+        if conn:
+            conn.close()
 
     logging.debug("GET /pixels - Invio tutti i pixel")
     return jsonify(pixels)
@@ -60,13 +64,19 @@ def get_pixels():
 def get_single_pixel(row, col):
     logging.debug(f"GET /pixels/{row},{col} - Ricevuta chiamata")
 
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT * FROM pixels WHERE pixel_row = %s AND pixel_col = %s", (row, col))
-    pixel = cur.fetchone()
-
-    cur.close()
-    conn.close()
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM pixels WHERE pixel_row = %s AND pixel_col = %s", (row, col))
+        pixel = cur.fetchone()
+        cur.close()
+    except Exception as e:
+        logging.error(f"Errore database: {e}")
+        return jsonify({"errore": "Errore interno"}), 500
+    finally:
+        if conn:
+            conn.close()
 
     if pixel is None:
         logging.debug(f"GET /pixels/{row},{col} - Pixel non trovato")
@@ -85,13 +95,21 @@ def update_pixel(row, col):
         logging.debug(f"PUT /pixels/{row},{col} - Colore mancante")
         return jsonify({"errore": "Colore mancante"}), 400
 
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
-    conn.commit()
-
-    cur.close()
-    conn.close()
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        logging.error(f"Errore database: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"errore": "Errore interno"}), 500
+    finally:
+        if conn:
+            conn.close()
 
     updated_pixel = {"pixel_row": row, "pixel_col": col, "color": new_color}
     logging.debug(f"PUT /pixels/{row},{col} - Aggiornato il pixel: {updated_pixel}")
@@ -123,13 +141,22 @@ def update_pixel_handler(data):
         return
     logging.debug(f"ID {client_id} - Aggiornare il pixel nel db: {data}")
 
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
-    conn.commit()
-
-    cur.close()
-    conn.close()
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE pixels SET color = %s WHERE pixel_row = %s AND pixel_col = %s", (new_color, row, col))
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        logging.error(f"Errore database: {e}")
+        if conn:
+            conn.rollback()
+        emit("error", {"errore": "Errore interno"})
+        return
+    finally:
+        if conn:
+            conn.close()
 
     logging.debug(f"ID {client_id} - Invio broadcast: {data}")
     emit("update_pixel", {"pixel_row": row, "pixel_col": col, "color": new_color}, broadcast=True)
