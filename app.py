@@ -163,4 +163,6 @@ def update_pixel_handler(data):
 
 # Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
 if __name__ == "__main__":
-    socketio.run(app, debug=True) # True per sviluppo locale, False per produzione (pubblico)
+    port = int(os.getenv("PORT", 5000))  # Railway inietta PORT automaticamente
+    debug = os.getenv("FLASK_ENV") == "development" # True per sviluppo locale, False per produzione (pubblico)
+    socketio.run(app, host="0.0.0.0", port=port, debug=debug) # 0.0.0.0 ascolta tutte interfacce su Railway
