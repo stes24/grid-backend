@@ -119,8 +119,7 @@ def update_pixel(row, col):
 
 @socketio.on("connect")
 def connect_handler():
-    client_id = request.sid
-    logging.debug(f"ID {client_id} - Client connesso")
+    logging.debug(f"ID {request.sid} - Client connesso")
 
 @socketio.on("disconnect")
 def disconnect_handler():
@@ -138,8 +137,8 @@ def update_pixel_handler(data):
         logging.debug(f"ID {client_id} - Dati mancanti: {data}")
         emit("error", {"errore": "Dati mancanti"})
         return
-    logging.debug(f"ID {client_id} - Aggiornare il pixel nel db: {data}")
 
+    logging.debug(f"ID {client_id} - Aggiornare il pixel nel db: {data}")
     conn = None
     try:
         conn = get_connection()

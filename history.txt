@@ -11,6 +11,8 @@ CREATE TABLE pixels (
 INSERT INTO pixels (pixel_row, pixel_col)
 SELECT r, c
 FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
+- Per resettare il colore:
+UPDATE pixels SET color = '#FFFFFF'
 
 - Creato ambiente virtuale: python -m venv venv (contiene una copia di Python
   e i pacchetti installati solo per questo progetto, invece che globalmente)
@@ -33,3 +35,4 @@ FROM generate_series(0, 9) AS r, generate_series(0, 9) AS c
 
 - Sviluppata app come endpoint REST per leggere/aggiornare i pixel (presenta delle route
   a cui si collegherà il client), avviata nell'ambiente virtuale: python app.py
+- Effettuato deploy su Railway
