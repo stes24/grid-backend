@@ -1,8 +1,8 @@
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import emit, SocketIO
+from psycopg2.extras import RealDictCursor
 import logging
 import os
 import psycopg2
@@ -121,7 +121,6 @@ def update_pixel(row, col):
 def connect_handler():
     client_id = request.sid
     logging.debug(f"ID {client_id} - Client connesso")
-    emit("message", f"Benvenuto, sei il client {client_id}")
 
 @socketio.on("disconnect")
 def disconnect_handler():
@@ -161,8 +160,6 @@ def update_pixel_handler(data):
     logging.debug(f"ID {client_id} - Invio broadcast: {data}")
     emit("update_pixel", {"pixel_row": row, "pixel_col": col, "color": new_color}, broadcast=True)
 
-# Esegui solo se il file è eseguito direttamente - previene esecuzione se lo importi
+# Esegui solo se il file è eseguito direttamente (locale) - previene esecuzione se lo importi
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))  # Railway inietta PORT automaticamente
-    debug = os.getenv("FLASK_ENV") == "development" # True per sviluppo locale, False per produzione (pubblico)
-    socketio.run(app, host="0.0.0.0", port=port, debug=debug) # 0.0.0.0 ascolta tutte interfacce su Railway
+    socketio.run(app, debug=True)
